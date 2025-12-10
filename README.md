@@ -33,6 +33,7 @@
 | Back-end (Server) | Node.js (Express)	| REST API 서버 구축, 데이터베이스 연동 및 비즈니스 로직 처리 |
 | Database | MySQL | 사용자 등록 위치(saved_locations), 사용자 정보(users), 날씨 캐시(weather_cache) 저장 및 관리 |
 | Caching/Auth | Redis | 회원가입, 로그인, 비밀번호 찾기 등의 인증 및 세션 정보 관리 (RedisManager.java 사용) |
+| OPEN API | openweather | 무료 날씨 api |
 
 ---
 
