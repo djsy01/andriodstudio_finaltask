@@ -17,11 +17,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class RedisManager {
-
-    // TODO: Railway에 배포 후 실제 URL로 변경
-    private static final String API_BASE_URL = "http://10.0.2.2:3000/api"; // 에뮬레이터용
-    // 실제 기기 테스트 시: "http://YOUR_LOCAL_IP:3000/api" (예: http://192.168.0.10:3000/api)
-    // Railway 배포 후: "https://your-app.railway.app/api"
+    private static final String API_BASE_URL = "http://10.0.2.2:3000/api";
 
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
@@ -46,7 +42,6 @@ public class RedisManager {
     }
 
     public void init(android.content.Context context) {
-        // HTTP API 사용 시 init 불필요하지만 호환성 유지
     }
 
     public interface RedisCallback {
@@ -54,9 +49,6 @@ public class RedisManager {
         void onError(String error);
     }
 
-    /**
-     * 사용자 등록 (회원가입)
-     */
     public void registerUser(String userId, String password, String name, String phone, RedisCallback callback) {
         executorService.execute(() -> {
             try {
@@ -94,9 +86,6 @@ public class RedisManager {
         });
     }
 
-    /**
-     * 아이디 중복 체크
-     */
     public void checkUserIdExists(String userId, RedisCallback callback) {
         executorService.execute(() -> {
             try {
@@ -131,9 +120,6 @@ public class RedisManager {
         });
     }
 
-    /**
-     * 로그인
-     */
     public void login(String userId, String password, RedisCallback callback) {
         executorService.execute(() -> {
             try {
@@ -169,9 +155,6 @@ public class RedisManager {
         });
     }
 
-    /**
-     * 로그아웃
-     */
     public void logout(String sessionId, RedisCallback callback) {
         executorService.execute(() -> {
             try {
@@ -200,9 +183,6 @@ public class RedisManager {
         });
     }
 
-    /**
-     * 아이디 찾기
-     */
     public void findUserId(String name, String phone, RedisCallback callback) {
         executorService.execute(() -> {
             try {
@@ -238,9 +218,6 @@ public class RedisManager {
         });
     }
 
-    /**
-     * 비밀번호 찾기
-     */
     public void findPassword(String userId, String name, String phone, RedisCallback callback) {
         executorService.execute(() -> {
             try {
@@ -277,25 +254,14 @@ public class RedisManager {
         });
     }
 
-    /**
-     * 세션 검증
-     */
     public void validateSession(String sessionId, RedisCallback callback) {
-        // 간단하게 로컬에서만 확인 (필요시 서버에 API 추가)
         mainHandler.post(() -> callback.onSuccess("valid"));
     }
 
-    /**
-     * 사용자 정보 조회
-     */
     public void getUserInfo(String userId, RedisCallback callback) {
-        // 필요시 서버에 API 추가
         mainHandler.post(() -> callback.onSuccess("info"));
     }
 
-    /**
-     * 연결 테스트
-     */
     public void testConnection(RedisCallback callback) {
         executorService.execute(() -> {
             try {
@@ -317,9 +283,6 @@ public class RedisManager {
         });
     }
 
-    /**
-     * 연결 종료
-     */
     public void close() {
         executorService.shutdown();
     }

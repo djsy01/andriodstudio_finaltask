@@ -2,21 +2,26 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise');
+const dotenv = require('dotenv');
+
+// 환경 변수 로드
+dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; 
 
 // 미들웨어 설정
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// MySQL 연결 풀 생성
+// MySQL 연결 풀 생성 (환경 변수 사용)
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'your_password',
-  database: 'weather_app',
+  host: process.env.MYSQL_HOST, 
+  port: process.env.MYSQL_PORT,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -39,8 +44,9 @@ app.get('/api/locations/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
+    // 테이블 이름: user_locations -> saved_locations으로 수정
     const [rows] = await pool.query(
-      'SELECT * FROM user_locations WHERE user_id = ? ORDER BY display_order ASC',
+      'SELECT * FROM saved_locations WHERE user_id = ? ORDER BY display_order ASC',
       [userId]
     );
     
@@ -60,27 +66,34 @@ app.get('/api/locations/:userId', async (req, res) => {
 // 2. 위치 추가
 app.post('/api/locations', async (req, res) => {
   try {
-    const { userId, location } = req.body;
+    const { userId, locationName, latitude, longitude } = req.body; 
     
-    if (!userId || !location) {
+    if (!userId || !locationName) {
       return res.status(400).json({
         success: false,
-        error: 'userId and location are required'
+        error: 'userId and locationName are required'
       });
     }
+
+    // [보강] users 테이블에 레코드가 없으면 추가 (Foreign Key 문제 방지)
+    // NOTE: users 테이블이 없으면 이 쿼리가 실패합니다.
+    await pool.query(
+      'INSERT IGNORE INTO users (user_id, user_name) VALUES (?, ?)',
+      [userId, userId] // user_name은 일단 userId와 동일하게 설정
+    );
     
-    // 현재 최대 순서 조회
+    // 현재 최대 순서 조회 (테이블 이름 수정)
     const [maxOrder] = await pool.query(
-      'SELECT COALESCE(MAX(display_order), -1) as max_order FROM user_locations WHERE user_id = ?',
+      'SELECT COALESCE(MAX(display_order), -1) as max_order FROM saved_locations WHERE user_id = ?',
       [userId]
     );
     
     const newOrder = maxOrder[0].max_order + 1;
     
-    // 위치 추가
+    // 위치 추가 (테이블 이름 수정)
     const [result] = await pool.query(
-      'INSERT INTO user_locations (user_id, location, display_order) VALUES (?, ?, ?)',
-      [userId, location, newOrder]
+      'INSERT INTO saved_locations (user_id, location_name, latitude, longitude, display_order) VALUES (?, ?, ?, ?, ?)',
+      [userId, locationName, latitude, longitude, newOrder]
     );
     
     res.json({
@@ -90,23 +103,39 @@ app.post('/api/locations', async (req, res) => {
     });
   } catch (error) {
     console.error('Error adding location:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to add location'
-    });
+    // 중복 키 오류(ER_DUP_ENTRY) 처리
+    if (error.code === 'ER_DUP_ENTRY') {
+         res.status(409).json({
+            success: false,
+            error: 'Location already exists for this user.'
+        });
+    } else {
+        res.status(500).json({
+          success: false,
+          error: 'Failed to add location'
+        });
+    }
   }
 });
 
-// 3. 위치 삭제
+// 3. 위치 삭제 (테이블 이름 수정)
 app.delete('/api/locations/:userId/:location', async (req, res) => {
   try {
     const { userId, location } = req.params;
     
-    await pool.query(
-      'DELETE FROM user_locations WHERE user_id = ? AND location = ?',
+    // 테이블 이름: user_locations -> saved_locations으로 수정
+    const [result] = await pool.query(
+      'DELETE FROM saved_locations WHERE user_id = ? AND location_name = ?',
       [userId, decodeURIComponent(location)]
     );
     
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+          success: false,
+          error: 'Location not found.'
+      });
+    }
+
     res.json({
       success: true,
       message: 'Location deleted successfully'
@@ -120,7 +149,7 @@ app.delete('/api/locations/:userId/:location', async (req, res) => {
   }
 });
 
-// 4. 위치 순서 업데이트 (핵심 엔드포인트)
+// 4. 위치 순서 업데이트 (핵심 엔드포인트) - 테이블 이름 수정
 app.put('/api/locations/order', async (req, res) => {
   const connection = await pool.getConnection();
   
@@ -131,21 +160,33 @@ app.put('/api/locations/order', async (req, res) => {
     
     // 입력 검증
     if (!userId || !Array.isArray(locations) || locations.length === 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'userId and locations array are required'
       });
+      return;
     }
     
     // 트랜잭션 시작
     await connection.beginTransaction();
     
-    // 각 위치의 순서 업데이트
+    // 각 위치의 순서 업데이트 (테이블 이름 수정)
     for (let i = 0; i < locations.length; i++) {
-      await connection.query(
-        'UPDATE user_locations SET display_order = ? WHERE user_id = ? AND location = ?',
+      const [result] = await connection.query(
+        'UPDATE saved_locations SET display_order = ? WHERE user_id = ? AND location_name = ?',
         [i, userId, locations[i]]
       );
+      
+      // 업데이트된 행이 0개인 경우 (데이터 불일치) 처리
+      if (result.affectedRows === 0) {
+           await connection.rollback();
+           res.status(404).json({
+               success: false,
+               error: `Location '${locations[i]}' not found for user '${userId}'`
+           });
+           connection.release();
+           return;
+      }
     }
     
     // 트랜잭션 커밋
@@ -159,15 +200,18 @@ app.put('/api/locations/order', async (req, res) => {
     });
     
   } catch (error) {
-    // 트랜잭션 롤백
-    await connection.rollback();
+    if (connection) {
+       await connection.rollback();
+    }
     console.error('Error updating location order:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to update location order'
+      error: 'Failed to update location order due to server error.'
     });
   } finally {
-    connection.release();
+    if (connection) {
+       connection.release();
+    }
   }
 });
 

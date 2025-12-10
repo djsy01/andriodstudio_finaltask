@@ -2,12 +2,14 @@ package com.cookandroid.finaltask;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -171,14 +173,11 @@ public class MySQLManager {
     public void deleteLocation(String userId, String locationName, DatabaseCallback callback) {
         executorService.execute(() -> {
             try {
-                JsonObject json = new JsonObject();
-                json.addProperty("userId", userId);
-                json.addProperty("locationName", locationName);
+                String encodedLocation = URLEncoder.encode(locationName, "UTF-8");
 
-                RequestBody body = RequestBody.create(json.toString(), JSON);
                 Request request = new Request.Builder()
-                        .url(API_BASE_URL + "/locations")
-                        .delete(body)
+                        .url(API_BASE_URL + "/locations/" + userId + "/" + encodedLocation)
+                        .delete() // DELETE 요청 (body 없이)
                         .build();
 
                 Response response = client.newCall(request).execute();
@@ -218,7 +217,7 @@ public class MySQLManager {
                 }
                 json.add("locations", locationsArray);
 
-                android.util.Log.d("MySQLManager", "Request: " + json.toString());
+                android.util.Log.d("MySQLManager", "Request JSON: " + json.toString());
 
                 RequestBody body = RequestBody.create(json.toString(), JSON);
                 Request request = new Request.Builder()
@@ -229,7 +228,8 @@ public class MySQLManager {
                 Response response = client.newCall(request).execute();
                 String responseBody = response.body().string();
 
-                android.util.Log.d("MySQLManager", "Response: " + response.code() + " - " + responseBody);
+                android.util.Log.d("MySQLManager", "Response Code: " + response.code());
+                android.util.Log.d("MySQLManager", "Response Body: " + responseBody);
 
                 if (response.isSuccessful()) {
                     JsonObject result = gson.fromJson(responseBody, JsonObject.class);
@@ -237,7 +237,7 @@ public class MySQLManager {
                     mainHandler.post(() -> callback.onSuccess(message));
                 } else {
                     JsonObject error = gson.fromJson(responseBody, JsonObject.class);
-                    String errorMsg = error.get("error").getAsString();
+                    String errorMsg = error.has("error") ? error.get("error").getAsString() : "알 수 없는 서버 오류";
                     mainHandler.post(() -> callback.onError(errorMsg));
                 }
             } catch (IOException e) {

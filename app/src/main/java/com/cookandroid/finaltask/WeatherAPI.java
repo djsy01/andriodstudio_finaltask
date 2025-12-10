@@ -16,7 +16,6 @@ import okhttp3.Response;
 
 public class WeatherAPI {
 
-    // OpenWeatherMap API 키
     private static final String API_KEY = "2ccc0d62398504f1a2041d7d2c5b05d9";
     private static final boolean USE_DUMMY_DATA = false; // 실제 API 사용
     private static final String BASE_URL = "https://api.openweathermap.org/data/2.5/weather";
@@ -38,11 +37,7 @@ public class WeatherAPI {
         void onError(String error);
     }
 
-    /**
-     * 위도/경도로 날씨 정보 가져오기
-     */
     public void getWeatherByCoordinates(double lat, double lon, WeatherCallback callback) {
-        // API 키가 없으면 더미 데이터 사용
         if (USE_DUMMY_DATA || API_KEY.equals("YOUR_API_KEY_HERE")) {
             android.util.Log.d("WeatherAPI", "Using dummy data (USE_DUMMY_DATA=" + USE_DUMMY_DATA + ")");
             getDummyWeather("현재 위치", callback);
@@ -70,21 +65,16 @@ public class WeatherAPI {
                     mainHandler.post(() -> callback.onSuccess(weatherData));
                 } else {
                     android.util.Log.e("WeatherAPI", "API Failed, using dummy data");
-                    // API 실패 시 더미 데이터
                     getDummyWeather("현재 위치", callback);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
                 android.util.Log.e("WeatherAPI", "Network Error: " + e.getMessage());
-                // 네트워크 오류 시 더미 데이터
                 getDummyWeather("현재 위치", callback);
             }
         });
     }
 
-    /**
-     * 도시 이름으로 날씨 정보 가져오기
-     */
     public void getWeatherByCity(String cityName, WeatherCallback callback) {
         // API 키가 없으면 더미 데이터 사용
         if (USE_DUMMY_DATA || API_KEY.equals("YOUR_API_KEY_HERE")) {
@@ -108,39 +98,30 @@ public class WeatherAPI {
 
                     mainHandler.post(() -> callback.onSuccess(weatherData));
                 } else {
-                    // API 실패 시 더미 데이터
                     getDummyWeather(cityName, callback);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
-                // 네트워크 오류 시 더미 데이터
                 getDummyWeather(cityName, callback);
             }
         });
     }
 
-    /**
-     * JSON 데이터를 WeatherData 객체로 파싱
-     */
     private WeatherData parseWeatherData(String jsonData) {
         JsonObject json = gson.fromJson(jsonData, JsonObject.class);
 
         WeatherData weatherData = new WeatherData();
 
-        // 위치 이름
         weatherData.setLocationName(json.get("name").getAsString());
 
-        // 날씨 정보
         JsonObject main = json.getAsJsonObject("main");
         weatherData.setTemperature(main.get("temp").getAsDouble());
         weatherData.setFeelsLike(main.get("feels_like").getAsDouble());
         weatherData.setHumidity(main.get("humidity").getAsInt());
 
-        // 날씨 상태
         JsonObject weather = json.getAsJsonArray("weather").get(0).getAsJsonObject();
         weatherData.setWeatherStatus(weather.get("description").getAsString());
 
-        // 강수량 (있는 경우)
         if (json.has("rain")) {
             JsonObject rain = json.getAsJsonObject("rain");
             if (rain.has("1h")) {
@@ -160,12 +141,8 @@ public class WeatherAPI {
         return weatherData;
     }
 
-    /**
-     * 테스트용 더미 데이터 생성
-     */
     public void getDummyWeather(String location, WeatherCallback callback) {
         executorService.execute(() -> {
-            // 네트워크 지연 시뮬레이션
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -174,9 +151,9 @@ public class WeatherAPI {
 
             WeatherData dummyData = new WeatherData(
                     location,
-                    15.0 + (Math.random() * 20), // 15-35도
+                    15.0 + (Math.random() * 20),
                     13.0 + (Math.random() * 20),
-                    50 + (int)(Math.random() * 40), // 50-90%
+                    50 + (int)(Math.random() * 40),
                     Math.random() * 10, // 0-10mm
                     getRandomWeatherStatus()
             );
@@ -190,9 +167,6 @@ public class WeatherAPI {
         return statuses[(int)(Math.random() * statuses.length)];
     }
 
-    /**
-     * ExecutorService 종료
-     */
     public void shutdown() {
         executorService.shutdown();
     }

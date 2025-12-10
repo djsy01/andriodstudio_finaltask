@@ -7,9 +7,7 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,7 +15,11 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.ItemTouchHelper;
 
+// 누락된 import 구문 추가
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 
@@ -27,26 +29,35 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class LocationManageActivity extends AppCompatActivity {
+// ItemTouchHelper.Callback을 구현하여 드래그 앤 드롭 기능을 통합합니다.
+public class LocationManageActivity extends AppCompatActivity
+        implements LocationAdapter.OnItemClickListener, LocationAdapter.OnStartDragListener {
 
     private static final int LOCATION_PERMISSION_REQUEST = 101;
 
     private Button buttonBack, buttonCurrentLocation, buttonAddLocation;
     private TextView textViewCurrentLocation;
-    private ListView listViewLocations;
 
+    private RecyclerView recyclerViewLocations; // ListView 대신 RecyclerView 사용
+
+    // FusedLocationProviderClient 선언 유지
     private FusedLocationProviderClient fusedLocationClient;
+
     private MySQLManager mysqlManager;
     private SharedPreferences sharedPreferences;
 
     private List<SavedLocation> savedLocations;
+    private LocationAdapter locationAdapter;
     private String currentUserId;
+
+    private ItemTouchHelper itemTouchHelper; // ItemTouchHelper 추가
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_location_manage);
 
+        // LocationServices 초기화 시 FusedLocationProviderClient를 사용합니다.
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         mysqlManager = MySQLManager.getInstance();
         sharedPreferences = getSharedPreferences("UserSession", MODE_PRIVATE);
@@ -63,48 +74,47 @@ public class LocationManageActivity extends AppCompatActivity {
         buttonCurrentLocation = findViewById(R.id.buttonCurrentLocation);
         buttonAddLocation = findViewById(R.id.buttonAddLocation);
         textViewCurrentLocation = findViewById(R.id.textViewCurrentLocation);
-        listViewLocations = findViewById(R.id.listViewLocations);
+
+        // ID 변경: listViewLocations -> recyclerViewLocations
+        recyclerViewLocations = findViewById(R.id.recyclerViewLocations);
     }
 
     private void setupLocationList() {
         savedLocations = new ArrayList<>();
 
-        // 간단한 ArrayAdapter 사용
-        final android.widget.ArrayAdapter<String> simpleAdapter = new android.widget.ArrayAdapter<>(
-                this,
-                android.R.layout.simple_list_item_1,
-                new ArrayList<String>()
-        );
-        listViewLocations.setAdapter(simpleAdapter);
+        // ItemClickListener와 OnStartDragListener를 현재 Activity로 설정
+        locationAdapter = new LocationAdapter(savedLocations, this, this);
 
-        // 아이템 클릭으로 위치 이동
-        listViewLocations.setOnItemClickListener((parent, view, position, id) -> {
-            showMoveDialog(position);
-        });
+        // RecyclerView 설정
+        recyclerViewLocations.setLayoutManager(new LinearLayoutManager(this));
+        recyclerViewLocations.setAdapter(locationAdapter);
 
-        // 롱클릭으로 삭제
-        listViewLocations.setOnItemLongClickListener((parent, view, position, id) -> {
-            showDeleteDialog(position);
-            return true;
-        });
+        // 1. ItemTouchHelperCallback 생성 및 설정 (드래그 앤 드롭 핵심)
+        ItemTouchHelper.Callback callback = new ItemTouchHelperCallback(locationAdapter);
+        itemTouchHelper = new ItemTouchHelper(callback);
+        itemTouchHelper.attachToRecyclerView(recyclerViewLocations);
+    }
+
+    // ItemTouchHelper.Callback 구현 (LocationAdapter.OnStartDragListener 인터페이스의 유일한 메서드)
+    @Override
+    public void onStartDrag(RecyclerView.ViewHolder viewHolder) {
+        itemTouchHelper.startDrag(viewHolder);
     }
 
     private void updateListView() {
-        List<String> locationNames = new ArrayList<>();
-        for (SavedLocation loc : savedLocations) {
-            locationNames.add(loc.getLocationName());
-        }
+        locationAdapter.notifyDataSetChanged();
+    }
 
-        android.widget.ArrayAdapter<String> adapter =
-                (android.widget.ArrayAdapter<String>) listViewLocations.getAdapter();
-        adapter.clear();
-        adapter.addAll(locationNames);
-        adapter.notifyDataSetChanged();
+    // 아이템 클릭 시 순서 이동 다이얼로그 (ListView의 기존 로직 유지)
+    @Override
+    public void onItemClick(int position) {
+        showMoveDialog(position);
     }
 
     private void showMoveDialog(int position) {
         if (savedLocations.size() <= 1) return;
 
+        // RecyclerView를 사용해도, 이 로직은 여전히 List를 기반으로 하므로 재활용 가능합니다.
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(savedLocations.get(position).getLocationName());
 
@@ -122,7 +132,6 @@ public class LocationManageActivity extends AppCompatActivity {
             SavedLocation item = savedLocations.get(position);
 
             if (position == 0) {
-                // 첫 번째 아이템
                 if (which == 0) { // 아래로 이동
                     Collections.swap(savedLocations, position, position + 1);
                     moved = true;
@@ -132,7 +141,6 @@ public class LocationManageActivity extends AppCompatActivity {
                     moved = true;
                 }
             } else if (position == savedLocations.size() - 1) {
-                // 마지막 아이템
                 if (which == 0) { // 위로 이동
                     Collections.swap(savedLocations, position, position - 1);
                     moved = true;
@@ -142,7 +150,6 @@ public class LocationManageActivity extends AppCompatActivity {
                     moved = true;
                 }
             } else {
-                // 중간 아이템
                 if (which == 0) { // 위로 이동
                     Collections.swap(savedLocations, position, position - 1);
                     moved = true;
@@ -296,7 +303,9 @@ public class LocationManageActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private void showDeleteDialog(int position) {
+    // LocationAdapter.OnItemClickListener 인터페이스 구현
+    @Override
+    public void onDeleteClick(int position) {
         SavedLocation location = savedLocations.get(position);
         String locationName = location.getLocationName();
 
@@ -310,7 +319,7 @@ public class LocationManageActivity extends AppCompatActivity {
                         @Override
                         public void onSuccess(String result) {
                             Toast.makeText(LocationManageActivity.this, result, Toast.LENGTH_SHORT).show();
-                            loadUserLocations();
+                            loadUserLocations(); // 목록을 다시 로드하여 업데이트
                         }
 
                         @Override
@@ -327,8 +336,9 @@ public class LocationManageActivity extends AppCompatActivity {
     /**
      * 위치 순서를 서버에 저장
      */
-    private void saveLocationOrder() {
+    public void saveLocationOrder() {
         List<String> orderedNames = new ArrayList<>();
+        // savedLocations 리스트는 이미 변경된 순서를 가지고 있습니다.
         for (SavedLocation location : savedLocations) {
             orderedNames.add(location.getLocationName());
         }
@@ -360,6 +370,64 @@ public class LocationManageActivity extends AppCompatActivity {
                 Toast.makeText(this, "위치 권한이 필요합니다", Toast.LENGTH_SHORT).show();
                 textViewCurrentLocation.setText("위치 권한이 거부되었습니다");
             }
+        }
+    }
+
+    /**
+     * ItemTouchHelper.Callback 구현 클래스 (RecyclerView 드래그 앤 드롭 로직)
+     */
+    public class ItemTouchHelperCallback extends ItemTouchHelper.Callback {
+
+        private final LocationAdapter mAdapter;
+
+        public ItemTouchHelperCallback(LocationAdapter adapter) {
+            mAdapter = adapter;
+        }
+
+        @Override
+        public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+            // 위/아래 드래그만 허용 (LEFT, RIGHT는 스와이프를 의미)
+            final int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN;
+            final int swipeFlags = 0; // 스와이프 비활성화
+            return makeMovementFlags(dragFlags, swipeFlags);
+        }
+
+        @Override
+        public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+            // 리스트에서 실제 위치를 바꿉니다.
+            mAdapter.onItemMove(viewHolder.getAdapterPosition(), target.getAdapterPosition());
+            return true;
+        }
+
+        @Override
+        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+            // 스와이프를 비활성화했으므로 비워둡니다.
+        }
+
+        @Override
+        public boolean isLongPressDragEnabled() {
+            // 드래그 핸들 터치 시에만 드래그를 시작하도록 하기 위해 LongPress는 비활성화합니다.
+            return false;
+        }
+
+        @Override
+        public boolean isItemViewSwipeEnabled() {
+            return false;
+        }
+
+        // 드래그 상태가 변경될 때 (드래그 시작/이동 중/드래그 종료)
+        @Override
+        public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
+            if (actionState != ItemTouchHelper.ACTION_STATE_IDLE) {
+                // 드래그 시작 시 배경색 변경 등의 시각적 피드백을 줄 수 있습니다.
+            } else {
+                // 드래그가 끝났을 때 (손을 뗐을 때) 최종 순서를 서버에 저장합니다.
+                if (viewHolder != null) {
+                    // 순서 저장
+                    LocationManageActivity.this.saveLocationOrder();
+                }
+            }
+            super.onSelectedChanged(viewHolder, actionState);
         }
     }
 }

@@ -65,7 +65,6 @@ public class LoginActivity extends AppCompatActivity {
         redisManager.login(userId, password, new RedisManager.RedisCallback() {
             @Override
             public void onSuccess(String sessionId) {
-                // 세션 ID 저장
                 saveSession(sessionId, userId);
                 Toast.makeText(LoginActivity.this, "로그인 성공!", Toast.LENGTH_SHORT).show();
                 navigateToMain();

@@ -17,12 +17,10 @@ public class FindAccountActivity extends AppCompatActivity {
     private TabLayout tabLayout;
     private LinearLayout layoutFindId, layoutFindPassword;
 
-    // 아이디 찾기 뷰
     private TextInputEditText editTextFindIdName, editTextFindIdPhone;
     private Button buttonFindId;
     private TextView textViewFindIdResult;
 
-    // 비밀번호 찾기 뷰
     private TextInputEditText editTextFindPasswordId, editTextFindPasswordName, editTextFindPasswordPhone;
     private Button buttonFindPassword;
     private TextView textViewFindPasswordResult;
@@ -36,7 +34,7 @@ public class FindAccountActivity extends AppCompatActivity {
         setContentView(R.layout.activity_find_account);
 
         redisManager = RedisManager.getInstance();
-        redisManager.init(this); // RedisManager 초기화
+        redisManager.init(this);
 
         initViews();
         setupListeners();
@@ -47,13 +45,11 @@ public class FindAccountActivity extends AppCompatActivity {
         layoutFindId = findViewById(R.id.layoutFindId);
         layoutFindPassword = findViewById(R.id.layoutFindPassword);
 
-        // 아이디 찾기
         editTextFindIdName = findViewById(R.id.editTextFindIdName);
         editTextFindIdPhone = findViewById(R.id.editTextFindIdPhone);
         buttonFindId = findViewById(R.id.buttonFindId);
         textViewFindIdResult = findViewById(R.id.textViewFindIdResult);
 
-        // 비밀번호 찾기
         editTextFindPasswordId = findViewById(R.id.editTextFindPasswordId);
         editTextFindPasswordName = findViewById(R.id.editTextFindPasswordName);
         editTextFindPasswordPhone = findViewById(R.id.editTextFindPasswordPhone);
@@ -69,12 +65,10 @@ public class FindAccountActivity extends AppCompatActivity {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 if (tab.getPosition() == 0) {
-                    // 아이디 찾기 탭
                     layoutFindId.setVisibility(View.VISIBLE);
                     layoutFindPassword.setVisibility(View.GONE);
                     clearFindIdFields();
                 } else {
-                    // 비밀번호 찾기 탭
                     layoutFindId.setVisibility(View.GONE);
                     layoutFindPassword.setVisibility(View.VISIBLE);
                     clearFindPasswordFields();
@@ -102,7 +96,6 @@ public class FindAccountActivity extends AppCompatActivity {
             return;
         }
 
-        // Redis에서 아이디 찾기
         redisManager.findUserId(name, phone, new RedisManager.RedisCallback() {
             @Override
             public void onSuccess(String userId) {
@@ -116,7 +109,6 @@ public class FindAccountActivity extends AppCompatActivity {
                 textViewFindIdResult.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
                 textViewFindIdResult.setVisibility(View.VISIBLE);
 
-                // 3초 후 색상 원래대로
                 textViewFindIdResult.postDelayed(() -> {
                     textViewFindIdResult.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
                 }, 3000);
@@ -134,7 +126,6 @@ public class FindAccountActivity extends AppCompatActivity {
             return;
         }
 
-        // Redis에서 비밀번호 찾기
         redisManager.findPassword(userId, name, phone, new RedisManager.RedisCallback() {
             @Override
             public void onSuccess(String password) {
@@ -148,7 +139,6 @@ public class FindAccountActivity extends AppCompatActivity {
                 textViewFindPasswordResult.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
                 textViewFindPasswordResult.setVisibility(View.VISIBLE);
 
-                // 3초 후 색상 원래대로
                 textViewFindPasswordResult.postDelayed(() -> {
                     textViewFindPasswordResult.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
                 }, 3000);

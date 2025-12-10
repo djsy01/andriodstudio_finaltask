@@ -26,7 +26,7 @@ public class RegisterActivity extends AppCompatActivity {
         setContentView(R.layout.activity_register);
 
         redisManager = RedisManager.getInstance();
-        redisManager.init(this); // RedisManager 초기화
+        redisManager.init(this);
 
         initViews();
         setupListeners();
@@ -44,10 +44,8 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        // 아이디 중복 확인
         buttonCheckId.setOnClickListener(v -> checkIdDuplication());
 
-        // 아이디 변경 시 중복 체크 초기화
         editTextUserId.addTextChangedListener(new android.text.TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -78,7 +76,6 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // Redis로 중복 확인
         redisManager.checkUserIdExists(userId, new RedisManager.RedisCallback() {
             @Override
             public void onSuccess(String result) {
@@ -102,12 +99,10 @@ public class RegisterActivity extends AppCompatActivity {
         String name = editTextName.getText().toString().trim();
         String phone = editTextPhone.getText().toString().trim();
 
-        // 유효성 검사
         if (!validateInput(userId, password, passwordConfirm, name, phone)) {
             return;
         }
 
-        // Redis에 회원가입
         redisManager.registerUser(userId, password, name, phone, new RedisManager.RedisCallback() {
             @Override
             public void onSuccess(String result) {
@@ -124,33 +119,28 @@ public class RegisterActivity extends AppCompatActivity {
 
     private boolean validateInput(String userId, String password, String passwordConfirm,
                                   String name, String phone) {
-        // 모든 필드 입력 확인
         if (userId.isEmpty() || password.isEmpty() || passwordConfirm.isEmpty() ||
                 name.isEmpty() || phone.isEmpty()) {
             Toast.makeText(this, "모든 필드를 입력하세요", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        // 아이디 중복 체크 확인
         if (!isIdChecked || !checkedUserId.equals(userId)) {
             Toast.makeText(this, "아이디 중복 확인을 해주세요", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        // 비밀번호 유효성 검사
         if (!isValidPassword(password)) {
             Toast.makeText(this, "비밀번호는 소문자, 숫자, 특수기호(~!@#등)를 포함한 8자 이상이어야 합니다",
                     Toast.LENGTH_LONG).show();
             return false;
         }
 
-        // 비밀번호 확인 일치
         if (!password.equals(passwordConfirm)) {
             Toast.makeText(this, "비밀번호가 일치하지 않습니다", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        // 전화번호 유효성 검사
         if (!isValidPhone(phone)) {
             Toast.makeText(this, "올바른 전화번호 형식을 입력하세요 (예: 01012345678)",
                     Toast.LENGTH_SHORT).show();
@@ -160,31 +150,21 @@ public class RegisterActivity extends AppCompatActivity {
         return true;
     }
 
-    /**
-     * 비밀번호 유효성 검사
-     * - 8자 이상
-     * - 소문자 포함
-     * - 숫자 포함
-     * - 특수기호(~!@#$%^&*) 포함
-     */
     private boolean isValidPassword(String password) {
         if (password.length() < 8) {
             return false;
         }
 
-        // 소문자 포함 확인
         Pattern lowercasePattern = Pattern.compile("[a-z]");
         if (!lowercasePattern.matcher(password).find()) {
             return false;
         }
 
-        // 숫자 포함 확인
         Pattern digitPattern = Pattern.compile("[0-9]");
         if (!digitPattern.matcher(password).find()) {
             return false;
         }
 
-        // 특수기호 포함 확인
         Pattern specialPattern = Pattern.compile("[~!@#$%^&*]");
         if (!specialPattern.matcher(password).find()) {
             return false;
@@ -193,11 +173,6 @@ public class RegisterActivity extends AppCompatActivity {
         return true;
     }
 
-    /**
-     * 전화번호 유효성 검사
-     * - 01로 시작
-     * - 9~11자리 숫자
-     */
     private boolean isValidPhone(String phone) {
         Pattern phonePattern = Pattern.compile("^01[0-9]{8,9}$");
         return phonePattern.matcher(phone).matches();
