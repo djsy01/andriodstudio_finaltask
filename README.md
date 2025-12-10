@@ -41,7 +41,7 @@
 | 문제점 | 상세 내용 | 해결 과정 |
 | ----- | ----- | -----
 | 위치 정보 순서 변경 (핵심) | 저장된 위치 목록의 순서를 드래그 앤 드롭으로 변경하고, 변경된 순서를 데이터베이스에 반영하는 과정에서 클라이언트-서버 연동 오류가 발생함. | 1. 클라이언트: 기존 ListView 대신 RecyclerView와 ItemTouchHelper를 도입하여 드래그 앤 드롭 기반의 UI를 구현함. 2. 백엔드: DB 테이블 이름(user_locations -> saved_locations) 불일치 문제를 해결하고, PUT /api/locations/order 엔드포인트에서 트랜잭션을 사용하여 원자성(Atomic) 있는 순서 업데이트를 구현함. |
-| DB 테이블 미존재 오류 | 서버가 user_locations 테이블을 찾지 못해 모든 데이터 접근에서 ER_NO_SUCH_TABLE 오류 발생.	실제 DB에 생성된 테이블 이름(saved_locations)에 맞춰 server.js의 모든 쿼리를 수정하고, users 테이블도 추가 생성하여 외래 키 문제를 해결함. |
+| DB 테이블 미존재 오류 | 서버가 user_locations 테이블을 찾지 못해 모든 데이터 접근에서 ER_NO_SUCH_TABLE 오류 발생. | 실제 DB에 생성된 테이블 이름(saved_locations)에 맞춰 server.js의 모든 쿼리를 수정하고, users 테이블도 추가 생성하여 외래 키 문제를 해결함. |
 
 ---
 
