@@ -1,0 +1,103 @@
+# ===============================
+# 🌍 OS / 에디터 공통 무시 파일
+# ===============================
+.DS_Store         # macOS
+Thumbs.db         # Windows
+desktop.ini       # Windows
+ehthumbs.db       # Windows
+
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.lock
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# =================================
+# 📦 Node.js / React / RN 공통
+# =================================
+node_modules/
+build/
+dist/
+.cache/
+.next/
+out/
+
+# 📦 패키지 매니저
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# ================================
+# 🧪 테스트 및 빌드 결과물
+# ================================
+coverage/
+.nyc_output/
+*.test.js
+*.spec.js
+
+# ================================
+# 🔐 환경 변수
+# ================================
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ================================
+# 📁 client (React)
+# ================================
+client/node_modules/
+client/build/
+client/.env
+client/.next/
+client/.cache/
+
+# ================================
+# 📁 server (Node.js + Express)
+# ================================
+server/node_modules/
+server/dist/
+server/.env
+server/gradlew
+
+# ================================
+# 📱 app (React Native)
+# ================================
+app/node_modules/
+app/android/
+app/ios/
+app/.expo/
+app/.env
+app/expo-debug.log
+
+# iOS
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+
+# Android
+*.iml
+.gradle/
+local.properties
+*.keystore
+
+# ================================
+# 📝 기타 문서, 출력물
+# ================================
+*.pdf
+*.hwp
+*.docx
+*.pptx
+*.zip
+docs/*.pdf
+docs/*.hwp
