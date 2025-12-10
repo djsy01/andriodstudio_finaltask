@@ -17,8 +17,8 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class RedisManager {
-    private static final String API_BASE_URL = "http://10.0.2.2:3000/api";
 
+    private static final String API_BASE_URL = "http://10.0.2.2:3000/api";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
     private static RedisManager instance;
@@ -122,64 +122,13 @@ public class RedisManager {
 
     public void login(String userId, String password, RedisCallback callback) {
         executorService.execute(() -> {
-            try {
-                JsonObject json = new JsonObject();
-                json.addProperty("userId", userId);
-                json.addProperty("password", password);
-
-                RequestBody body = RequestBody.create(json.toString(), JSON);
-                Request request = new Request.Builder()
-                        .url(API_BASE_URL + "/login")
-                        .post(body)
-                        .build();
-
-                Response response = client.newCall(request).execute();
-                String responseBody = response.body().string();
-
-                if (response.isSuccessful()) {
-                    JsonObject result = gson.fromJson(responseBody, JsonObject.class);
-                    String sessionId = result.get("sessionId").getAsString();
-                    mainHandler.post(() -> callback.onSuccess(sessionId));
-                } else {
-                    JsonObject error = gson.fromJson(responseBody, JsonObject.class);
-                    String errorMsg = error.get("error").getAsString();
-                    mainHandler.post(() -> callback.onError(errorMsg));
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-                mainHandler.post(() -> callback.onError("네트워크 오류: " + e.getMessage()));
-            } catch (Exception e) {
-                e.printStackTrace();
-                mainHandler.post(() -> callback.onError("오류: " + e.getMessage()));
-            }
+            mainHandler.post(() -> callback.onSuccess("dummy_session_id_for_local_test"));
         });
     }
 
     public void logout(String sessionId, RedisCallback callback) {
         executorService.execute(() -> {
-            try {
-                JsonObject json = new JsonObject();
-                json.addProperty("sessionId", sessionId);
-
-                RequestBody body = RequestBody.create(json.toString(), JSON);
-                Request request = new Request.Builder()
-                        .url(API_BASE_URL + "/logout")
-                        .post(body)
-                        .build();
-
-                Response response = client.newCall(request).execute();
-                String responseBody = response.body().string();
-                JsonObject result = gson.fromJson(responseBody, JsonObject.class);
-                String message = result.get("message").getAsString();
-
-                mainHandler.post(() -> callback.onSuccess(message));
-            } catch (IOException e) {
-                e.printStackTrace();
-                mainHandler.post(() -> callback.onError("네트워크 오류: " + e.getMessage()));
-            } catch (Exception e) {
-                e.printStackTrace();
-                mainHandler.post(() -> callback.onError("오류: " + e.getMessage()));
-            }
+            mainHandler.post(() -> callback.onSuccess("로컬 세션 해제 허용"));
         });
     }
 

@@ -26,7 +26,6 @@ public class RegisterActivity extends AppCompatActivity {
         setContentView(R.layout.activity_register);
 
         redisManager = RedisManager.getInstance();
-        redisManager.init(this);
 
         initViews();
         setupListeners();
